@@ -12,7 +12,7 @@
     "vapi:build": "cd server && npm run vapi:build --"
   },
   "engines": {
-    "node": ">=18 <=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
