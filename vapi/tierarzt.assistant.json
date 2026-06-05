@@ -1,0 +1,118 @@
+{
+  "_comment": "Generiert aus verticals/tierarzt.json via \"npm run vapi:build -- tierarzt\". 'server.url' = deine Webhook-URL, 'server.secret' = VAPI_WEBHOOK_SECRET.",
+  "name": "TierVoice – Tierarztpraxis",
+  "firstMessageMode": "assistant-speaks-first",
+  "firstMessage": "Schönen guten Tag, hier ist der digitale Assistent der {{practice_name}}. Leider ist gerade niemand frei – ich nehme Ihr Anliegen gern auf, damit das Team Sie zurückruft. Worum geht es denn?",
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "de"
+  },
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.4,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Du bist der freundliche telefonische Assistent der **{{practice_name}}**.\nDu gehst ans Telefon, weil gerade niemand vom Team den Anruf annehmen konnte.\n\n## Deine Aufgabe\nDu nimmst das Anliegen des Anrufers auf, damit das Praxisteam später zurückrufen kann.\nDu triffst **keine medizinischen Aussagen** und gibst **keine Diagnosen oder Behandlungsempfehlungen**.\n\n## Gesprächsregeln\n- Sprich Deutsch, natürlich, ruhig und mitfühlend. Kurze Sätze.\n- Erfrage Schritt für Schritt und bestätige zwischendurch:\n  1. **Name** des Anrufers\n  2. **Rückrufnummer** (lass sie zur Sicherheit wiederholen/buchstabieren)\n  3. **Um welches Tier** geht es (Name + Art, z.B. „Hund, Bello“)\n  4. **Anliegen** in eigenen Worten\n  5. Falls Terminwunsch: **wann** würde es ungefähr passen\n- Öffnungszeiten (nur zur Info, keine festen Zusagen!): {{opening_hours}}\n- Mach **niemals** eine verbindliche Terminzusage. Sag z.B.: „Ich notiere Ihren Wunsch, das Team bestätigt den Termin beim Rückruf.“\n\n## Notfälle (wichtig!)\nWenn der Anrufer einen **akuten Notfall** schildert (starke Blutung, Atemnot, Vergiftung, Krampfanfall, angefahrenes Tier, Aufgasung o.ä.):\n- Bleib ruhig, stufe das Anliegen als **Notfall** ein.\n- Sage klar: „Das klingt nach einem Notfall. Bitte fahren Sie umgehend zur nächsten Tierklinik oder zum tierärztlichen Notdienst. Ich gebe das sofort ans Team weiter.“\n- Nimm trotzdem Name und Nummer auf, wenn möglich.\n\n## Abschluss\nFasse am Ende kurz zusammen, was du notiert hast, und verabschiede dich:\n„Ich habe alles notiert – das Team meldet sich so schnell wie möglich bei Ihnen. Gute Besserung für [Tiername]!“\n\n## Datenschutz\nWenn jemand fragt: Du bist ein digitaler Assistent der Praxis, das Gespräch wird zur Bearbeitung des Anliegens aufgenommen. Erfrage nur, was nötig ist."
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "model": "eleven_multilingual_v2",
+    "_comment_voice": "Deutsche, warme Stimme im ElevenLabs-Account wählen."
+  },
+  "server": {
+    "url": "https://DEINE-RENDER-URL.onrender.com/api/webhook/vapi",
+    "secret": "ein-langes-zufaelliges-geheimnis",
+    "_comment_secret": "MUSS identisch zu VAPI_WEBHOOK_SECRET in der Server-.env sein."
+  },
+  "serverMessages": [
+    "end-of-call-report"
+  ],
+  "endCallFunctionEnabled": true,
+  "silenceTimeoutSeconds": 20,
+  "maxDurationSeconds": 600,
+  "analysisPlan": {
+    "summaryPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Fasse das Telefonat in 1-2 deutschen Sätzen für das Praxisteam zusammen. Nenne Anrufer, Tier und Anliegen."
+        }
+      ]
+    },
+    "structuredDataPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Extrahiere die folgenden Felder aus dem Telefonat. Gib nur JSON gemäß Schema zurück. Wenn ein Wert nicht genannt wurde, lass ihn weg. 'category' und 'urgency' immer setzen (im Zweifel category=sonstiges, urgency=mittel; bei akuter Gefahr urgency=notfall und category=notfall)."
+        }
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caller_name": {
+            "type": "string",
+            "description": "Name des Anrufers"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Rückrufnummer"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "termin_wunsch",
+              "termin_aendern",
+              "rezept_med",
+              "frage",
+              "notfall",
+              "sonstiges"
+            ],
+            "description": "Art des Anliegens"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Anliegen in eigenen Worten, kurz"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "niedrig",
+              "mittel",
+              "hoch",
+              "notfall"
+            ],
+            "description": "Dringlichkeit"
+          },
+          "appointment_requested": {
+            "type": "boolean",
+            "description": "Möchte der Anrufer einen Termin?"
+          },
+          "appointment_preference": {
+            "type": "string",
+            "description": "Gewünschter Zeitraum, z.B. 'morgen Vormittag'"
+          },
+          "pet_name": {
+            "description": "Name des Tieres, z.B. 'Bello'",
+            "type": "string"
+          },
+          "pet_type": {
+            "description": "Tierart, z.B. Hund, Katze, Kaninchen",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "urgency"
+        ]
+      }
+    }
+  }
+}

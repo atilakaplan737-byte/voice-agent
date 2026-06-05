@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default-Brand (wird zur Laufzeit aus /api/config überschrieben). */
+:root {
+  --brand-50: #eef6ff;
+  --brand-100: #d9eaff;
+  --brand-500: #2b7fff;
+  --brand-600: #1d6ae6;
+  --brand-700: #1857b8;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

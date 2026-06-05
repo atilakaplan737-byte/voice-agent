@@ -1,0 +1,132 @@
+{
+  "_comment": "Generiert aus verticals/physio.json via \"npm run vapi:build -- physio\". 'server.url' = deine Webhook-URL, 'server.secret' = VAPI_WEBHOOK_SECRET.",
+  "name": "PhysioVoice – Physiotherapie",
+  "firstMessageMode": "assistant-speaks-first",
+  "firstMessage": "Schönen guten Tag, hier ist der digitale Assistent der {{practice_name}}. Leider ist gerade niemand frei – ich nehme Ihr Anliegen gern auf, damit das Team Sie zurückruft. Worum geht es denn?",
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "de"
+  },
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.4,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Du bist der freundliche telefonische Assistent der Physiotherapie-Praxis **{{practice_name}}**.\nDu gehst ans Telefon, weil gerade niemand vom Team den Anruf annehmen konnte.\n\n## Deine Aufgabe\nDu nimmst das Anliegen des Anrufers auf, damit das Team später zurückrufen kann.\nDu triffst **keine medizinischen Aussagen** und gibst **keine Behandlungsempfehlungen**.\n\n## Gesprächsregeln\n- Sprich Deutsch, natürlich, ruhig und freundlich. Kurze Sätze.\n- Erfrage Schritt für Schritt und bestätige zwischendurch kurz:\n  1. **Name** des Anrufers\n  2. **Rückrufnummer** (lass sie zur Sicherheit wiederholen)\n  3. **Für wen** der Termin ist (Patientenname)\n  4. Liegt eine **ärztliche Verordnung / ein Rezept** vor? Falls ja, welche Behandlung steht drauf?\n  5. **gesetzlich, privat oder Selbstzahler**\n  6. Falls Terminwunsch: **wann** würde es ungefähr passen\n- Öffnungszeiten (nur zur Info, keine festen Zusagen!): {{opening_hours}}\n- Mach **niemals** eine verbindliche Terminzusage. Sag z.B.: „Ich notiere Ihren Wunsch, das Team bestätigt den Termin beim Rückruf.“\n\n## Akute Beschwerden\nWenn der Anrufer akute, starke Schmerzen oder einen medizinischen Notfall schildert:\n- Weise freundlich darauf hin, dass die Physiotherapie keine ärztliche Notfallversorgung leisten kann.\n- Empfehle bei einem Notfall die 112 bzw. den ärztlichen Bereitschaftsdienst 116117.\n- Nimm das Anliegen trotzdem als dringend auf.\n\n## Abschluss\nFasse am Ende kurz zusammen und verabschiede dich freundlich:\n„Ich habe alles notiert – das Team meldet sich so schnell wie möglich bei Ihnen. Alles Gute!“\n\n## Datenschutz\nWenn jemand fragt: Du bist ein digitaler Assistent der Praxis, das Gespräch wird zur Bearbeitung des Anliegens aufgenommen. Erfrage nur, was nötig ist."
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "model": "eleven_multilingual_v2",
+    "_comment_voice": "Deutsche, warme Stimme im ElevenLabs-Account wählen."
+  },
+  "server": {
+    "url": "https://DEINE-RENDER-URL.onrender.com/api/webhook/vapi",
+    "secret": "ein-langes-zufaelliges-geheimnis",
+    "_comment_secret": "MUSS identisch zu VAPI_WEBHOOK_SECRET in der Server-.env sein."
+  },
+  "serverMessages": [
+    "end-of-call-report"
+  ],
+  "endCallFunctionEnabled": true,
+  "silenceTimeoutSeconds": 20,
+  "maxDurationSeconds": 600,
+  "analysisPlan": {
+    "summaryPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Fasse das Telefonat in 1-2 deutschen Sätzen für das Praxisteam zusammen. Nenne Anrufer, Patient und Anliegen (inkl. Verordnung, falls genannt)."
+        }
+      ]
+    },
+    "structuredDataPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Extrahiere die folgenden Felder aus dem Telefonat. Gib nur JSON gemäß Schema zurück. Wenn ein Wert nicht genannt wurde, lass ihn weg. 'category' und 'urgency' immer setzen (im Zweifel category=sonstiges, urgency=mittel)."
+        }
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caller_name": {
+            "type": "string",
+            "description": "Name des Anrufers"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Rückrufnummer"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "termin_wunsch",
+              "termin_aendern",
+              "verordnung",
+              "frage",
+              "notfall",
+              "sonstiges"
+            ],
+            "description": "Art des Anliegens"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Anliegen in eigenen Worten, kurz"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "niedrig",
+              "mittel",
+              "hoch",
+              "notfall"
+            ],
+            "description": "Dringlichkeit"
+          },
+          "appointment_requested": {
+            "type": "boolean",
+            "description": "Möchte der Anrufer einen Termin?"
+          },
+          "appointment_preference": {
+            "type": "string",
+            "description": "Gewünschter Zeitraum, z.B. 'morgen Vormittag'"
+          },
+          "patient_name": {
+            "description": "Vor- und Nachname des Patienten",
+            "type": "string"
+          },
+          "prescription": {
+            "description": "Art der Verordnung / Heilmittel, z.B. 'Krankengymnastik', 'Manuelle Therapie', 'Lymphdrainage'",
+            "type": "string"
+          },
+          "has_prescription": {
+            "description": "Hat der Anrufer bereits eine ärztliche Verordnung?",
+            "type": "boolean"
+          },
+          "insurance": {
+            "description": "gesetzlich, privat oder Selbstzahler",
+            "type": "string",
+            "enum": [
+              "gesetzlich",
+              "privat",
+              "selbstzahler",
+              "unbekannt"
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "urgency"
+        ]
+      }
+    }
+  }
+}

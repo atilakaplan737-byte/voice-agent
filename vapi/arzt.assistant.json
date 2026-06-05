@@ -1,0 +1,133 @@
+{
+  "_comment": "Generiert aus verticals/arzt.json via \"npm run vapi:build -- arzt\". 'server.url' = deine Webhook-URL, 'server.secret' = VAPI_WEBHOOK_SECRET.",
+  "name": "PraxisVoice – Arztpraxis",
+  "firstMessageMode": "assistant-speaks-first",
+  "firstMessage": "Schönen guten Tag, hier ist der digitale Assistent der {{practice_name}}. Dieses Gespräch wird zur Bearbeitung Ihres Anliegens aufgezeichnet. Leider ist gerade niemand frei – ich nehme Ihr Anliegen gern auf, damit das Team Sie zurückruft. Worum geht es denn?",
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "de"
+  },
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.4,
+    "messages": [
+      {
+        "role": "system",
+        "content": "Du bist der freundliche telefonische Assistent der **{{practice_name}}**.\nDu gehst ans Telefon, weil gerade niemand vom Team den Anruf annehmen konnte.\n\n## Deine Aufgabe\nDu nimmst das Anliegen des Anrufers auf, damit das Praxisteam später zurückrufen kann.\nDu triffst **keine medizinischen Aussagen** und gibst **keine Diagnosen, Therapie- oder Medikamentenempfehlungen**.\n\n## Gesprächsregeln\n- Sprich Deutsch, natürlich, ruhig und freundlich. Kurze Sätze.\n- Erfrage Schritt für Schritt und bestätige zwischendurch kurz:\n  1. **Name** des Anrufers\n  2. **Rückrufnummer** (wiederhole sie zur Bestätigung Ziffer für Ziffer)\n  3. **Für wen** der Termin / das Anliegen ist (Patientenname + Geburtsdatum)\n  4. **Gesetzlich oder privat** versichert (nur kurz, wenn passend)\n  5. **Anliegen** in eigenen Worten\n  6. Falls Terminwunsch: **wann** würde es ungefähr passen\n- Öffnungszeiten (nur zur Info, keine festen Zusagen!): {{opening_hours}}\n- Mach **niemals** eine verbindliche Terminzusage. Sag z.B.: „Ich notiere Ihren Wunsch, das Team bestätigt den Termin beim Rückruf.“\n\n## Zahlen & Telefonnummern (wichtig fürs Vorlesen)\n- Wenn du eine Telefonnummer oder eine längere Ziffernfolge **wiederholst**, sprich sie **einzeln Ziffer für Ziffer** aus, z.B. „null – eins – sieben – zwei – …“.\n- Lies Nummern **niemals** als zusammenhängende Zahl und **niemals** als Datum vor (also nicht „sechster März“, sondern „sechs – drei“).\n- Bei Uhrzeiten/Daten ganz normal sprechen – diese Regel gilt nur für Telefonnummern und lange Ziffernfolgen.\n\n## Namen richtig erfassen (wichtig)\n- Verstehst du den Namen nicht sicher, bitte freundlich ums Buchstabieren **mit Buchstabiertafel**: „Können Sie den Namen buchstabieren, gern mit Beispielwörtern – zum Beispiel ‚A wie Anton‘?“\n- Das ist viel zuverlässiger als einzelne Buchstaben. Wiederhole den Namen danach einmal zur Bestätigung.\n- Rate **niemals** einen Namen und tu nicht so, als hättest du ihn verstanden.\n- Bleibt der Name nach zwei Versuchen unklar: notiere ihn so gut es geht und sag, das Team klärt den Namen beim Rückruf – die **Rückrufnummer** ist das Wichtigste.\n\n## Notfälle (wichtig!)\nWenn der Anrufer einen **akuten Notfall** schildert (z.B. starke Brustschmerzen, Atemnot, Bewusstlosigkeit, starke Blutung, Anzeichen eines Schlaganfalls):\n- Bleib ruhig, stufe das Anliegen als **Notfall** ein.\n- Sage klar: „Das klingt nach einem Notfall. Bitte wählen Sie sofort die 112 oder den ärztlichen Bereitschaftsdienst unter 116117. Ich gebe Ihr Anliegen zusätzlich sofort ans Team weiter.“\n- Nimm trotzdem Name und Nummer auf, wenn möglich.\n\n## Abschluss\nFasse am Ende kurz zusammen, was du notiert hast, und verabschiede dich freundlich:\n„Ich habe alles notiert – das Team meldet sich so schnell wie möglich bei Ihnen. Alles Gute!“\n- Wenn der Anrufer sich nach der Bestätigung verabschiedet (z.B. „Tschüss“, „Auf Wiederhören“, „Danke, das war's“), verabschiede dich kurz und **beende das Gespräch dann aktiv (lege auf)**.\n- Lege **nicht** vorher auf – erst wenn alle Daten bestätigt sind und der Anrufer sich verabschiedet.\n\n## Datenschutz\nWenn jemand fragt: Du bist ein digitaler Assistent der Praxis, das Gespräch wird zur Bearbeitung des Anliegens aufgenommen. Erfrage nur, was nötig ist."
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "model": "eleven_multilingual_v2",
+    "_comment_voice": "Deutsche, warme Stimme im ElevenLabs-Account wählen."
+  },
+  "server": {
+    "url": "https://DEINE-RENDER-URL.onrender.com/api/webhook/vapi",
+    "secret": "ein-langes-zufaelliges-geheimnis",
+    "_comment_secret": "MUSS identisch zu VAPI_WEBHOOK_SECRET in der Server-.env sein."
+  },
+  "serverMessages": [
+    "end-of-call-report"
+  ],
+  "endCallFunctionEnabled": true,
+  "silenceTimeoutSeconds": 20,
+  "maxDurationSeconds": 600,
+  "analysisPlan": {
+    "summaryPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Fasse das Telefonat in 1-2 deutschen Sätzen für das Praxisteam zusammen. Nenne Anrufer, Patient und Anliegen."
+        }
+      ]
+    },
+    "structuredDataPlan": {
+      "enabled": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Extrahiere die folgenden Felder aus dem Telefonat. Gib nur JSON gemäß Schema zurück. Wenn ein Wert nicht genannt wurde, lass ihn weg. 'category' und 'urgency' immer setzen (im Zweifel category=sonstiges, urgency=mittel; bei akuter Gefahr urgency=notfall und category=notfall)."
+        }
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "caller_name": {
+            "type": "string",
+            "description": "Name des Anrufers"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Rückrufnummer"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "termin_wunsch",
+              "termin_aendern",
+              "rezept",
+              "ueberweisung_au",
+              "befund",
+              "frage",
+              "notfall",
+              "sonstiges"
+            ],
+            "description": "Art des Anliegens"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Anliegen in eigenen Worten, kurz"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "niedrig",
+              "mittel",
+              "hoch",
+              "notfall"
+            ],
+            "description": "Dringlichkeit"
+          },
+          "appointment_requested": {
+            "type": "boolean",
+            "description": "Möchte der Anrufer einen Termin?"
+          },
+          "appointment_preference": {
+            "type": "string",
+            "description": "Gewünschter Zeitraum, z.B. 'morgen Vormittag'"
+          },
+          "patient_name": {
+            "description": "Vor- und Nachname des Patienten",
+            "type": "string"
+          },
+          "birthdate": {
+            "description": "Geburtsdatum des Patienten, z.B. '14.03.1980'",
+            "type": "string"
+          },
+          "insurance": {
+            "description": "gesetzlich oder privat versichert",
+            "type": "string",
+            "enum": [
+              "gesetzlich",
+              "privat",
+              "unbekannt"
+            ]
+          },
+          "is_existing_patient": {
+            "description": "Ist der Anrufer bereits Patient der Praxis?",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "category",
+          "urgency"
+        ]
+      }
+    }
+  }
+}

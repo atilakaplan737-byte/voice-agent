@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: voice-agent
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Branche dieses Deployments (arzt | physio | tierarzt …)
+      - key: VERTICAL
+        value: arzt
+      # Im Render Dashboard manuell setzen (sync: false = nicht in Git):
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: VAPI_WEBHOOK_SECRET
+        sync: false
+      - key: DASHBOARD_API_KEY
+        sync: false
