@@ -60,7 +60,11 @@ Antwort" / „CFNR" (Call Forward No Reply).
 3. Nach wenigen Sekunden erscheint der Anruf im Dashboard.
 
 ## 6. Übergabe ans Personal
-- Dashboard-URL + Zugangsschlüssel (`DASHBOARD_API_KEY`) übergeben.
+- Dashboard-URL + **praxis-eigenen** Zugangsschlüssel übergeben.
+  Schlüssel der Praxis holen: im Supabase SQL Editor
+  `select name, dashboard_key from practices order by name;`
+  (jede Praxis sieht damit **nur ihre eigenen** Anrufe; der `DASHBOARD_API_KEY`
+  aus der Env ist dein Master-Zugang für alle Praxen).
 - Kurz zeigen: Anruf öffnen → Rückrufnummer → Status auf „erledigt" setzen.
 - Empfehlung: Dashboard als Lesezeichen/Tab am Empfangs-PC offen lassen
   (auto-aktualisiert alle 30 Sek.).
