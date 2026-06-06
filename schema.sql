@@ -11,6 +11,8 @@
 -- ──────────────────────────────────────────────
 --  Praxen (Kunden)
 -- ──────────────────────────────────────────────
+create extension if not exists pgcrypto;  -- für gen_random_bytes (Dashboard-Schlüssel)
+
 create table if not exists public.practices (
   id            uuid primary key default gen_random_uuid(),
   vertical      text not null default 'arzt',  -- 'arzt' | 'physio' | 'tierarzt' | …
@@ -18,6 +20,8 @@ create table if not exists public.practices (
   phone         text,                          -- Haupt-Festnetznummer der Praxis
   vapi_number   text,                          -- die Nummer, auf die umgeleitet wird
   opening_hours text,                          -- Freitext, für Kontext im Prompt
+  dashboard_key text unique
+                default encode(gen_random_bytes(16), 'hex'),  -- eigener Login-Schlüssel je Praxis
   active        boolean not null default true,
   created_at    timestamptz not null default now()
 );

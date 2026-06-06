@@ -144,6 +144,7 @@ export default function App() {
             {brandEmoji} {brandName} – Anrufe
           </h1>
           <p className="text-sm text-slate-500">
+            {practices.length === 1 ? `${practices[0].name} · ` : ''}
             {newCount > 0 ? `${newCount} neue Anrufe` : 'Keine neuen Anrufe'}
           </p>
         </div>

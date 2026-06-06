@@ -5,17 +5,43 @@ import { getSupabase } from '../lib/supabase';
 const router = express.Router();
 
 // ──────────────────────────────────────────────
-//  Einfacher Schutz fürs Dashboard (MVP).
-//  Frontend sendet  Authorization: Bearer <DASHBOARD_API_KEY>.
-//  Für Produktion später durch Supabase-Auth / pro-Praxis-Login ersetzen.
+//  Multi-Tenant-Schutz fürs Dashboard.
+//  Frontend sendet  Authorization: Bearer <key>.
+//   • key == DASHBOARD_API_KEY  → Master/Admin (sieht ALLE Praxen)
+//   • key == practices.dashboard_key → diese eine Praxis (sieht NUR ihre Anrufe)
+//   • sonst → 401
+//  Ergebnis liegt in res.locals: { isAdmin, practiceId, practiceName }
 // ──────────────────────────────────────────────
-router.use((req, res, next) => {
-  const key = process.env.DASHBOARD_API_KEY;
-  if (!key) return next(); // nicht konfiguriert → offen (nur lokal sinnvoll)
+router.use(async (req, res, next) => {
   const auth = req.header('authorization') ?? '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (token !== key) return res.status(401).json({ error: 'unauthorized' });
-  next();
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  if (!token) return res.status(401).json({ error: 'unauthorized' });
+
+  const master = process.env.DASHBOARD_API_KEY;
+  if (master && token === master) {
+    res.locals.isAdmin = true;
+    res.locals.practiceId = null;
+    return next();
+  }
+
+  // Praxis-Schlüssel nachschlagen
+  try {
+    const supabase = getSupabase();
+    const { data } = await supabase
+      .from('practices')
+      .select('id, name')
+      .eq('dashboard_key', token)
+      .eq('active', true)
+      .maybeSingle();
+    if (!data) return res.status(401).json({ error: 'unauthorized' });
+    res.locals.isAdmin = false;
+    res.locals.practiceId = data.id;
+    res.locals.practiceName = data.name;
+    return next();
+  } catch (err) {
+    console.error('❌ Auth-Lookup:', err);
+    return res.status(500).json({ error: 'db_error' });
+  }
 });
 
 // GET /api/calls?practice_id=&status=
@@ -28,10 +54,16 @@ router.get('/', async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(200);
 
-    const practiceId = req.query.practice_id;
-    if (typeof practiceId === 'string' && practiceId) {
-      query = query.eq('practice_id', practiceId);
+    // Nicht-Admins sind fest auf ihre Praxis beschränkt.
+    if (!res.locals.isAdmin) {
+      query = query.eq('practice_id', res.locals.practiceId);
+    } else {
+      const practiceId = req.query.practice_id;
+      if (typeof practiceId === 'string' && practiceId) {
+        query = query.eq('practice_id', practiceId);
+      }
     }
+
     const status = req.query.status;
     if (typeof status === 'string' && status) {
       query = query.eq('status', status);
@@ -64,12 +96,12 @@ router.patch('/:id', async (req, res) => {
 
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('calls')
-      .update(update)
-      .eq('id', req.params.id)
-      .select()
-      .maybeSingle();
+    let q = supabase.from('calls').update(update).eq('id', req.params.id);
+    // Nicht-Admins dürfen nur eigene Anrufe ändern.
+    if (!res.locals.isAdmin) {
+      q = q.eq('practice_id', res.locals.practiceId);
+    }
+    const { data, error } = await q.select().maybeSingle();
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'not_found' });
     res.json({ call: data });
@@ -79,15 +111,20 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// GET /api/calls/practices  → Liste der Praxen fürs Dropdown
+// GET /api/calls/meta/practices  → Praxen-Liste
+//  Admin: alle. Praxis: nur sich selbst (fürs Frontend/Anzeige).
 router.get('/meta/practices', async (_req, res) => {
   try {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    let query = supabase
       .from('practices')
       .select('id, name')
       .eq('active', true)
       .order('name');
+    if (!res.locals.isAdmin) {
+      query = query.eq('id', res.locals.practiceId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     res.json({ practices: data ?? [] });
   } catch (err) {
