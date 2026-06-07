@@ -7,6 +7,7 @@ import cors from 'cors';
 import webhookRouter from './routes/webhook';
 import callsRouter from './routes/calls';
 import appointmentsRouter from './routes/appointments';
+import settingsRouter from './routes/settings';
 import toolsRouter from './routes/tools';
 import { isSupabaseConfigured } from './lib/supabase';
 import { getVertical } from './lib/vertical';
@@ -26,6 +27,7 @@ app.use('/api/tools', toolsRouter);
 // Dashboard-API (fürs Praxis-Personal)
 app.use('/api/calls', callsRouter);
 app.use('/api/appointments', appointmentsRouter);
+app.use('/api/settings', settingsRouter);
 
 // Aktive Branchen-Config – das Frontend rendert Brand, Kategorien & Felder daraus.
 app.get('/api/config', (_req, res) => {

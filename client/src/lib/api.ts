@@ -1,5 +1,6 @@
 import type {
   Appointment,
+  ApptSettings,
   Call,
   CallStatus,
   Practice,
@@ -95,6 +96,27 @@ export async function cancelAppointment(id: string): Promise<void> {
     headers: authHeaders(),
   });
   await handle<{ ok: boolean }>(res);
+}
+
+export async function fetchSettings(practiceId?: string): Promise<ApptSettings> {
+  const params = new URLSearchParams();
+  if (practiceId) params.set('practice_id', practiceId);
+  const res = await fetch(`/api/settings?${params.toString()}`, { headers: authHeaders() });
+  return handle<ApptSettings>(res);
+}
+
+export async function saveSettings(
+  s: ApptSettings,
+  practiceId?: string
+): Promise<ApptSettings> {
+  const params = new URLSearchParams();
+  if (practiceId) params.set('practice_id', practiceId);
+  const res = await fetch(`/api/settings?${params.toString()}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(s),
+  });
+  return handle<ApptSettings>(res);
 }
 
 export async function fetchPractices(): Promise<Practice[]> {

@@ -20,6 +20,7 @@ import {
   formatDate,
 } from './lib/labels';
 import CallDetail from './components/CallDetail';
+import Settings from './components/Settings';
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Alle' },
@@ -48,7 +49,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<Call | null>(null);
   const [search, setSearch] = useState('');
-  const [view, setView] = useState<'calls' | 'appointments'>('calls');
+  const [view, setView] = useState<'calls' | 'appointments' | 'settings'>('calls');
   const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
   const [scheduleEnabled, setScheduleEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -211,6 +212,7 @@ export default function App() {
         {([
           ['calls', 'Anrufe'],
           ['appointments', `Termine${bookedCount ? ` (${bookedCount})` : ''}`],
+          ['settings', 'Einstellungen'],
         ] as const).map(([v, label]) => (
           <button
             key={v}
@@ -391,6 +393,10 @@ export default function App() {
             ))}
           </div>
         ))}
+
+      {view === 'settings' && (
+        <Settings practiceId={practiceId || undefined} onSaved={load} />
+      )}
 
       {selected && (
         <CallDetail

@@ -38,6 +38,20 @@ export interface Appointment {
   created_at: string;
 }
 
+export interface ApptWindow {
+  weekday: number; // 1=Mo … 7=So
+  start: string; // "09:00"
+  end: string; // "11:00"
+}
+
+export interface ApptSettings {
+  appt_enabled: boolean;
+  appt_slot_minutes: number;
+  appt_horizon_days: number;
+  appt_lead_hours: number;
+  appt_windows: ApptWindow[];
+}
+
 export interface ScheduleSlot {
   iso: string;
   date: string; // "2026-06-09"
