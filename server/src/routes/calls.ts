@@ -111,6 +111,25 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/calls/:id  → Eintrag endgültig löschen (DSGVO / Aufräumen)
+router.delete('/:id', async (req, res) => {
+  try {
+    const supabase = getSupabase();
+    let q = supabase.from('calls').delete().eq('id', req.params.id);
+    // Nicht-Admins dürfen nur eigene Anrufe löschen.
+    if (!res.locals.isAdmin) {
+      q = q.eq('practice_id', res.locals.practiceId);
+    }
+    const { data, error } = await q.select().maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('❌ /api/calls DELETE:', err);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
 // GET /api/calls/meta/practices  → Praxen-Liste
 //  Admin: alle. Praxis: nur sich selbst (fürs Frontend/Anzeige).
 router.get('/meta/practices', async (_req, res) => {

@@ -53,6 +53,14 @@ export async function updateCall(
   return data.call;
 }
 
+export async function deleteCall(id: string): Promise<void> {
+  const res = await fetch(`/api/calls/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  await handle<{ ok: boolean }>(res);
+}
+
 export async function fetchPractices(): Promise<Practice[]> {
   const res = await fetch('/api/calls/meta/practices', {
     headers: authHeaders(),

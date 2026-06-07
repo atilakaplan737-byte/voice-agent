@@ -20,6 +20,7 @@ create table if not exists public.practices (
   phone         text,                          -- Haupt-Festnetznummer der Praxis
   vapi_number   text,                          -- die Nummer, auf die umgeleitet wird
   opening_hours text,                          -- Freitext, für Kontext im Prompt
+  custom_instructions text,                    -- praxis-spezifische Prompt-Zusätze ({{custom_instructions}})
   dashboard_key text unique
                 default encode(gen_random_bytes(16), 'hex'),  -- eigener Login-Schlüssel je Praxis
   active        boolean not null default true,

@@ -13,6 +13,7 @@ interface Props {
   config: VerticalConfig | null;
   onClose: () => void;
   onUpdate: (id: string, patch: { status?: CallStatus; staff_note?: string }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 const STATUS_FLOW: CallStatus[] = ['neu', 'in_bearbeitung', 'erledigt'];
@@ -24,7 +25,7 @@ function formatDetail(value: unknown): string | null {
   return String(value);
 }
 
-export default function CallDetail({ call, config, onClose, onUpdate }: Props) {
+export default function CallDetail({ call, config, onClose, onUpdate, onDelete }: Props) {
   const [note, setNote] = useState(call.staff_note ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +39,13 @@ export default function CallDetail({ call, config, onClose, onUpdate }: Props) {
     setSaving(true);
     await onUpdate(call.id, { staff_note: note });
     setSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!confirm('Diesen Anruf endgültig löschen? Das kann nicht rückgängig gemacht werden.')) return;
+    setSaving(true);
+    await onDelete(call.id);
+    // Schließen übernimmt der Aufrufer (Eintrag ist dann weg)
   }
 
   const fields = config?.fields ?? [];
@@ -78,7 +86,19 @@ export default function CallDetail({ call, config, onClose, onUpdate }: Props) {
         </div>
 
         <dl className="space-y-3 text-sm">
-          <Field label="Rückrufnummer" value={call.callback_number} mono />
+          {call.callback_number && (
+            <div>
+              <dt className="text-xs font-medium text-slate-500">Rückrufnummer</dt>
+              <dd>
+                <a
+                  href={`tel:${call.callback_number.replace(/\s/g, '')}`}
+                  className="inline-flex items-center gap-1 font-mono text-brand-700 hover:underline"
+                >
+                  📞 {call.callback_number}
+                </a>
+              </dd>
+            </div>
+          )}
           {/* Branchenspezifische Felder aus der Config */}
           {fields.map((f) => (
             <Field key={f.key} label={f.label} value={formatDetail(call.details?.[f.key])} />
@@ -143,6 +163,16 @@ export default function CallDetail({ call, config, onClose, onUpdate }: Props) {
             className="mt-2 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             Notiz speichern
+          </button>
+        </div>
+
+        <div className="mt-6 border-t pt-4">
+          <button
+            onClick={handleDelete}
+            disabled={saving}
+            className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline disabled:opacity-50"
+          >
+            🗑️ Anruf endgültig löschen
           </button>
         </div>
       </div>

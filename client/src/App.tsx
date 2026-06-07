@@ -5,6 +5,7 @@ import {
   fetchConfig,
   fetchPractices,
   updateCall,
+  deleteCall,
   getKey,
   setKey,
 } from './lib/api';
@@ -43,6 +44,7 @@ export default function App() {
   const [practiceId, setPracticeId] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<Call | null>(null);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -99,6 +101,22 @@ export default function App() {
     setCalls((cs) => cs.map((c) => (c.id === id ? updated : c)));
     setSelected((s) => (s && s.id === id ? updated : s));
   }
+
+  async function handleDelete(id: string) {
+    await deleteCall(id);
+    setCalls((cs) => cs.filter((c) => c.id !== id));
+    setSelected((s) => (s && s.id === id ? null : s));
+  }
+
+  // Such-Filter über die geladenen Anrufe (Name, Nummer, Anliegen, Zusammenfassung)
+  const q = search.trim().toLowerCase();
+  const visibleCalls = q
+    ? calls.filter((c) =>
+        [c.caller_name, c.callback_number, c.reason, c.summary]
+          .filter(Boolean)
+          .some((v) => (v as string).toLowerCase().includes(q))
+      )
+    : calls;
 
   const brandName = config?.brand.name ?? 'Voice-Agent';
   const brandEmoji = config?.brand.emoji ?? '📞';
@@ -186,6 +204,12 @@ export default function App() {
             </button>
           ))}
         </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Suchen (Name, Nummer, Anliegen) …"
+          className="ml-auto w-full max-w-xs rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        />
       </div>
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
@@ -196,6 +220,10 @@ export default function App() {
         ) : calls.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-400">
             Noch keine Anrufe erfasst.
+          </p>
+        ) : visibleCalls.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-400">
+            Keine Treffer für „{search}".
           </p>
         ) : (
           <table className="w-full text-left text-sm">
@@ -209,7 +237,7 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {calls.map((c) => (
+              {visibleCalls.map((c) => (
                 <tr
                   key={c.id}
                   onClick={() => setSelected(c)}
@@ -261,6 +289,7 @@ export default function App() {
           config={config}
           onClose={() => setSelected(null)}
           onUpdate={handleUpdate}
+          onDelete={handleDelete}
         />
       )}
     </div>
