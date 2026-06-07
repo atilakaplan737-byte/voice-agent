@@ -71,9 +71,47 @@ async function main() {
     process.exit(1);
   }
   const current = (await getRes.json()) as any;
+
+  // Tools für die Terminbuchung (rufen unseren /api/tools-Endpoint live im Gespräch auf)
+  const toolsUrl = serverUrl!.replace(/\/api\/webhook\/vapi$/, '/api/tools');
+  const tools = [
+    {
+      type: 'function',
+      function: {
+        name: 'freie_slots',
+        description:
+          'Gibt freie Erstgespräch-Termine der Praxis zurück. NUR bei einem Erstgespräch aufrufen.',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+      server: { url: toolsUrl, secret },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'termin_buchen',
+        description:
+          'Bucht einen Erstgespräch-Termin. Vorher freie_slots aufrufen und die slot_id aus der Liste verwenden.',
+        parameters: {
+          type: 'object',
+          properties: {
+            slot_id: {
+              type: 'string',
+              description: 'Die ID des gewählten Termins (aus freie_slots, in eckigen Klammern)',
+            },
+            patient_name: { type: 'string', description: 'Name des Patienten' },
+            callback_number: { type: 'string', description: 'Rückrufnummer' },
+          },
+          required: ['slot_id'],
+        },
+      },
+      server: { url: toolsUrl, secret },
+    },
+  ];
+
   const model = {
     ...(current.model ?? { provider: 'openai', model: 'gpt-4o' }),
     messages: [{ role: 'system', content: v.agent.systemPrompt }],
+    tools,
   };
 
   const body = {

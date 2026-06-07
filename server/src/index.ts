@@ -6,6 +6,8 @@ import express from 'express';
 import cors from 'cors';
 import webhookRouter from './routes/webhook';
 import callsRouter from './routes/calls';
+import appointmentsRouter from './routes/appointments';
+import toolsRouter from './routes/tools';
 import { isSupabaseConfigured } from './lib/supabase';
 import { getVertical } from './lib/vertical';
 
@@ -18,8 +20,12 @@ app.use(express.json({ limit: '1mb' })); // Transkripte können groß sein
 // Vapi-Webhook (vom Telefonie-Agent)
 app.use('/api/webhook', webhookRouter);
 
+// Vapi ruft Tools live im Gespräch auf (Terminbuchung)
+app.use('/api/tools', toolsRouter);
+
 // Dashboard-API (fürs Praxis-Personal)
 app.use('/api/calls', callsRouter);
+app.use('/api/appointments', appointmentsRouter);
 
 // Aktive Branchen-Config – das Frontend rendert Brand, Kategorien & Felder daraus.
 app.get('/api/config', (_req, res) => {

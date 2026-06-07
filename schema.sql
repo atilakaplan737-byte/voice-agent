@@ -23,9 +23,34 @@ create table if not exists public.practices (
   custom_instructions text,                    -- praxis-spezifische Prompt-Zusätze ({{custom_instructions}})
   dashboard_key text unique
                 default encode(gen_random_bytes(16), 'hex'),  -- eigener Login-Schlüssel je Praxis
+  -- Terminbuchung (Erstgespräche)
+  appt_enabled       boolean not null default false,
+  appt_slot_minutes  int     not null default 30,
+  appt_horizon_days  int     not null default 21,
+  appt_lead_hours    int     not null default 2,
+  appt_windows       jsonb   not null default '[]'::jsonb,  -- [{weekday:1-7, start:"HH:MM", end:"HH:MM"}] (Europe/Berlin)
   active        boolean not null default true,
   created_at    timestamptz not null default now()
 );
+
+-- ──────────────────────────────────────────────
+--  Termine (nur Erstgespräche)
+-- ──────────────────────────────────────────────
+create table if not exists public.appointments (
+  id              uuid primary key default gen_random_uuid(),
+  practice_id     uuid references public.practices(id) on delete cascade,
+  starts_at       timestamptz not null,
+  duration_min    int not null default 30,
+  kind            text not null default 'erstgespraech',
+  patient_name    text,
+  callback_number text,
+  status          text not null default 'gebucht',  -- gebucht | abgesagt
+  vapi_call_id    text,
+  created_at      timestamptz not null default now(),
+  unique (practice_id, starts_at)
+);
+create index if not exists appointments_practice_starts_idx
+  on public.appointments (practice_id, starts_at);
 
 -- ──────────────────────────────────────────────
 --  Anrufe / Leads (vom Voice-Agent erfasst)
@@ -85,6 +110,7 @@ create index if not exists calls_status_idx
 -- ──────────────────────────────────────────────
 alter table public.practices enable row level security;
 alter table public.calls enable row level security;
+alter table public.appointments enable row level security;
 -- (keine Policies für anon/authenticated → nur Service-Role kommt rein)
 
 -- ──────────────────────────────────────────────

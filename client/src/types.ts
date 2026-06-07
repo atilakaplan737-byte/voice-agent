@@ -26,6 +26,18 @@ export interface Practice {
   name: string;
 }
 
+export interface Appointment {
+  id: string;
+  practice_id: string | null;
+  starts_at: string;
+  duration_min: number;
+  kind: string;
+  patient_name: string | null;
+  callback_number: string | null;
+  status: string;
+  created_at: string;
+}
+
 // ── Branchen-Config, kommt von GET /api/config ──
 export interface VerticalField {
   key: string;

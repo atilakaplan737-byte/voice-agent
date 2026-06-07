@@ -1,4 +1,4 @@
-import type { Call, CallStatus, Practice, VerticalConfig } from '../types';
+import type { Appointment, Call, CallStatus, Practice, VerticalConfig } from '../types';
 
 // Dashboard-Key wird im Browser (localStorage) gehalten – MVP.
 const KEY_STORAGE = 'voiceagent_dashboard_key';
@@ -55,6 +55,24 @@ export async function updateCall(
 
 export async function deleteCall(id: string): Promise<void> {
   const res = await fetch(`/api/calls/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  await handle<{ ok: boolean }>(res);
+}
+
+export async function fetchAppointments(practiceId?: string): Promise<Appointment[]> {
+  const params = new URLSearchParams();
+  if (practiceId) params.set('practice_id', practiceId);
+  const res = await fetch(`/api/appointments?${params.toString()}`, {
+    headers: authHeaders(),
+  });
+  const data = await handle<{ appointments: Appointment[] }>(res);
+  return data.appointments;
+}
+
+export async function cancelAppointment(id: string): Promise<void> {
+  const res = await fetch(`/api/appointments/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
