@@ -91,7 +91,13 @@ export default function App() {
 
   useEffect(() => {
     if (!authed) return;
-    fetchPractices().then(setPractices).catch(() => {});
+    fetchPractices()
+      .then((ps) => {
+        setPractices(ps);
+        // Bei genau einer Praxis automatisch auswählen (gilt auch für Admin mit 1 Praxis)
+        if (ps.length === 1) setPracticeId(ps[0].id);
+      })
+      .catch(() => {});
   }, [authed]);
 
   useEffect(() => {
