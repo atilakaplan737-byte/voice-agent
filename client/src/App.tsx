@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { Appointment, Call, CallStatus, Practice, VerticalConfig } from './types';
+import type { Call, CallStatus, Practice, ScheduleSlot, VerticalConfig } from './types';
 import {
   fetchCalls,
   fetchConfig,
   fetchPractices,
-  fetchAppointments,
+  fetchSchedule,
   cancelAppointment,
   updateCall,
   deleteCall,
@@ -37,16 +37,6 @@ function applyBrandColors(config: VerticalConfig) {
   document.title = `${config.brand.name} – Anruf-Dashboard`;
 }
 
-/** Termin-Zeitpunkt menschlich (Europe/Berlin steckt im gespeicherten Zeitpunkt). */
-function formatAppt(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getKey()));
@@ -59,7 +49,8 @@ export default function App() {
   const [selected, setSelected] = useState<Call | null>(null);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'calls' | 'appointments'>('calls');
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
+  const [scheduleEnabled, setScheduleEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -79,7 +70,12 @@ export default function App() {
     try {
       const data = await fetchCalls(practiceId, statusFilter);
       setCalls(data);
-      fetchAppointments(practiceId).then(setAppointments).catch(() => {});
+      fetchSchedule(practiceId)
+        .then((r) => {
+          setSchedule(r.schedule);
+          setScheduleEnabled(r.enabled);
+        })
+        .catch(() => {});
     } catch (e) {
       if (e instanceof Error && e.message === 'unauthorized') {
         setAuthed(false);
@@ -127,7 +123,13 @@ export default function App() {
   async function handleCancel(id: string) {
     if (!confirm('Diesen Termin absagen? Der Slot wird wieder frei.')) return;
     await cancelAppointment(id);
-    setAppointments((a) => a.filter((x) => x.id !== id));
+    setSchedule((sl) =>
+      sl.map((s) =>
+        s.appointment_id === id
+          ? { ...s, status: 'frei', patient_name: null, callback_number: null, appointment_id: null }
+          : s
+      )
+    );
   }
 
   // Such-Filter über die geladenen Anrufe (Name, Nummer, Anliegen, Zusammenfassung)
@@ -175,6 +177,15 @@ export default function App() {
   }
 
   const newCount = calls.filter((c) => c.status === 'neu').length;
+  const bookedCount = schedule.filter((s) => s.status === 'gebucht').length;
+
+  // Slots nach Tag gruppieren (schedule kommt bereits zeitlich sortiert)
+  const grouped: { date: string; dayLabel: string; slots: ScheduleSlot[] }[] = [];
+  for (const s of schedule) {
+    const last = grouped[grouped.length - 1];
+    if (last && last.date === s.date) last.slots.push(s);
+    else grouped.push({ date: s.date, dayLabel: s.dayLabel, slots: [s] });
+  }
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-6">
@@ -199,7 +210,7 @@ export default function App() {
       <div className="mb-4 flex gap-1 border-b border-slate-200">
         {([
           ['calls', 'Anrufe'],
-          ['appointments', `Termine${appointments.length ? ` (${appointments.length})` : ''}`],
+          ['appointments', `Termine${bookedCount ? ` (${bookedCount})` : ''}`],
         ] as const).map(([v, label]) => (
           <button
             key={v}
@@ -328,60 +339,58 @@ export default function App() {
         </>
       )}
 
-      {view === 'appointments' && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {appointments.length === 0 ? (
-            <p className="p-8 text-center text-sm text-slate-400">
-              Keine gebuchten Termine.
+      {view === 'appointments' &&
+        (!scheduleEnabled ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+            {practices.length > 1
+              ? 'Bitte oben eine Praxis wählen.'
+              : 'Online-Terminbuchung ist für diese Praxis noch nicht aktiviert.'}
+          </div>
+        ) : grouped.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+            Keine Sprechzeiten für Erstgespräche hinterlegt.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-400">
+              <span className="mr-2 inline-block rounded bg-emerald-100 px-2 py-0.5 text-emerald-800">
+                gebucht
+              </span>
+              <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-slate-500">frei</span>
+              {' · Klick auf einen gebuchten Termin zum Absagen'}
             </p>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-100 text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3">Termin</th>
-                  <th className="px-4 py-3">Patient</th>
-                  <th className="px-4 py-3">Rückrufnummer</th>
-                  <th className="px-4 py-3">Art</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((a) => (
-                  <tr key={a.id} className="border-b border-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">
-                      {formatAppt(a.starts_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {a.patient_name || <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {a.callback_number ? (
-                        <a
-                          href={`tel:${a.callback_number.replace(/\s/g, '')}`}
-                          className="font-mono text-brand-700 hover:underline"
-                        >
-                          {a.callback_number}
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">Erstgespräch</td>
-                    <td className="px-4 py-3 text-right">
+            {grouped.map((g) => (
+              <div key={g.date} className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="mb-2 text-sm font-semibold capitalize text-slate-700">
+                  {g.dayLabel}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {g.slots.map((s) =>
+                    s.status === 'gebucht' ? (
                       <button
-                        onClick={() => handleCancel(a.id)}
-                        className="text-xs font-medium text-red-600 hover:underline"
+                        key={s.iso}
+                        onClick={() => s.appointment_id && handleCancel(s.appointment_id)}
+                        title="Klicken zum Absagen"
+                        className="rounded-lg bg-emerald-100 px-2.5 py-1.5 text-xs text-emerald-800 hover:bg-emerald-200"
                       >
-                        Absagen
+                        <span className="font-semibold">{s.time}</span>
+                        {' · '}
+                        {s.patient_name || 'gebucht'}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+                    ) : (
+                      <span
+                        key={s.iso}
+                        className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-500"
+                      >
+                        <span className="font-medium">{s.time}</span> frei
+                      </span>
+                    )
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
 
       {selected && (
         <CallDetail

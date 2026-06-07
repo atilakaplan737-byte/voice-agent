@@ -38,6 +38,17 @@ export interface Appointment {
   created_at: string;
 }
 
+export interface ScheduleSlot {
+  iso: string;
+  date: string; // "2026-06-09"
+  dayLabel: string; // "Montag, 9. Juni"
+  time: string; // "09:00"
+  status: 'frei' | 'gebucht';
+  patient_name: string | null;
+  callback_number: string | null;
+  appointment_id: string | null;
+}
+
 // ── Branchen-Config, kommt von GET /api/config ──
 export interface VerticalField {
   key: string;

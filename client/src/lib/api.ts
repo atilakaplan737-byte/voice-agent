@@ -1,4 +1,11 @@
-import type { Appointment, Call, CallStatus, Practice, VerticalConfig } from '../types';
+import type {
+  Appointment,
+  Call,
+  CallStatus,
+  Practice,
+  ScheduleSlot,
+  VerticalConfig,
+} from '../types';
 
 // Dashboard-Key wird im Browser (localStorage) gehalten – MVP.
 const KEY_STORAGE = 'voiceagent_dashboard_key';
@@ -69,6 +76,17 @@ export async function fetchAppointments(practiceId?: string): Promise<Appointmen
   });
   const data = await handle<{ appointments: Appointment[] }>(res);
   return data.appointments;
+}
+
+export async function fetchSchedule(
+  practiceId?: string
+): Promise<{ schedule: ScheduleSlot[]; enabled: boolean }> {
+  const params = new URLSearchParams();
+  if (practiceId) params.set('practice_id', practiceId);
+  const res = await fetch(`/api/appointments/schedule?${params.toString()}`, {
+    headers: authHeaders(),
+  });
+  return handle<{ schedule: ScheduleSlot[]; enabled: boolean }>(res);
 }
 
 export async function cancelAppointment(id: string): Promise<void> {

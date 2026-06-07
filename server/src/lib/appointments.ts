@@ -71,6 +71,67 @@ export function generateSlots(p: PracticeAppt, bookedMs: Set<number>, max = 6): 
   return out.slice(0, max);
 }
 
+export interface ScheduleSlot {
+  iso: string;
+  date: string; // "2026-06-09"
+  dayLabel: string; // "Montag, 9. Juni"
+  time: string; // "09:00"
+  status: 'frei' | 'gebucht';
+  patient_name: string | null;
+  callback_number: string | null;
+  appointment_id: string | null;
+}
+
+export interface BookedInfo {
+  id: string;
+  patient_name: string | null;
+  callback_number: string | null;
+}
+
+/**
+ * Vollständiger Belegungsplan fürs Dashboard: ALLE Slots der nächsten Tage,
+ * jeweils als 'frei' oder 'gebucht' (mit Patient) markiert.
+ */
+export function buildSchedule(
+  p: PracticeAppt,
+  booked: Map<number, BookedInfo>,
+  days = 14
+): ScheduleSlot[] {
+  const slotMin = p.appt_slot_minutes || 30;
+  const today = DateTime.now().setZone(ZONE).startOf('day');
+  const wins = windows(p);
+  const out: ScheduleSlot[] = [];
+
+  for (let d = 0; d <= days; d++) {
+    const day = today.plus({ days: d });
+    for (const w of wins.filter((x) => Number(x.weekday) === day.weekday)) {
+      const [sh, sm] = String(w.start).split(':').map(Number);
+      const [eh, em] = String(w.end).split(':').map(Number);
+      const dayEnd = day.set({ hour: eh, minute: em, second: 0, millisecond: 0 });
+      let cur = day.set({ hour: sh, minute: sm, second: 0, millisecond: 0 });
+      while (cur.plus({ minutes: slotMin }) <= dayEnd) {
+        const iso = cur.toUTC().toISO({ suppressMilliseconds: true });
+        const b = booked.get(cur.toMillis());
+        if (iso) {
+          out.push({
+            iso,
+            date: day.toISODate() ?? '',
+            dayLabel: day.setLocale('de').toFormat('cccc, d. LLLL'),
+            time: cur.toFormat('HH:mm'),
+            status: b ? 'gebucht' : 'frei',
+            patient_name: b?.patient_name ?? null,
+            callback_number: b?.callback_number ?? null,
+            appointment_id: b?.id ?? null,
+          });
+        }
+        cur = cur.plus({ minutes: slotMin });
+      }
+    }
+  }
+  out.sort((a, b) => a.iso.localeCompare(b.iso));
+  return out;
+}
+
 /** Prüft, ob ein gewünschter Zeitpunkt (iso) ein gültiger, freier Slot ist. */
 export function isValidSlot(p: PracticeAppt, bookedMs: Set<number>, iso: string): boolean {
   const target = DateTime.fromISO(iso);
